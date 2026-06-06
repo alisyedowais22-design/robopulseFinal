@@ -1,0 +1,29 @@
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# WordPress REST API query route: /?rest_route=/wp/v2/posts
+RewriteCond %{QUERY_STRING} (^|&)rest_route= [NC]
+RewriteRule ^.*$ /index.php [L]
+
+# WordPress REST API clean route: /wp-json/wp/v2/posts
+RewriteRule ^wp-json/?(.*)$ /index.php?rest_route=/$1 [QSA,L]
+
+# WordPress admin/login/core files
+RewriteRule ^wp-admin/? - [L]
+RewriteRule ^wp-login\.php$ - [L]
+RewriteRule ^wp-content/? - [L]
+RewriteRule ^wp-includes/? - [L]
+RewriteRule ^wp-cron\.php$ - [L]
+RewriteRule ^xmlrpc\.php$ - [L]
+
+# Existing files and folders
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# React frontend routes
+RewriteRule . /index.html [L]
+</IfModule>
