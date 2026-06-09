@@ -118,7 +118,7 @@ export default function TopRobots() {
 
         <div className="text-center mt-8">
           <Link to="/database" className="btn btn-outline">
-            View All 40+ Robots →
+            View All 20+ Robots →
           </Link>
         </div>
       </div>

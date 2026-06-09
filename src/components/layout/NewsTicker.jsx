@@ -7,9 +7,10 @@ export default function NewsTicker() {
 
   return (
     <div
-      className="w-full overflow-hidden py-2.5"
+      className="relative z-30 w-full overflow-hidden py-2.5 mt-[30px]"
       style={{
         background: 'rgba(0,240,200,0.05)',
+        borderTop: '1px solid rgba(0,240,200,0.08)',
         borderBottom: '1px solid rgba(0,240,200,0.1)',
       }}
     >
@@ -23,6 +24,7 @@ export default function NewsTicker() {
             className="w-2 h-2 rounded-full pulse-dot flex-shrink-0"
             style={{ background: '#00F0C8', boxShadow: '0 0 6px #00F0C8' }}
           />
+
           <span className="text-xs font-mono font-bold text-accent-teal tracking-widest uppercase whitespace-nowrap pr-4">
             BREAKING
           </span>
@@ -36,6 +38,7 @@ export default function NewsTicker() {
                 <span className="text-xs text-text-secondary font-mono whitespace-nowrap px-4">
                   {item}
                 </span>
+
                 <span className="text-text-muted text-xs">·</span>
               </span>
             ))}

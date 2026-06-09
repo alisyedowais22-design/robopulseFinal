@@ -1,7 +1,7 @@
+// pages/Reviews.jsx
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import Navbar from '../components/layout/Navbar'
-import Footer from '../components/layout/Footer'
 import { reviewsApi } from '../api/endpoints'
 
 const isFeatured = (value) => {
@@ -29,6 +29,10 @@ const getReviewDate = (review) => {
     review?.createdAt ||
     ''
   )
+}
+
+const getReviewSlug = (review) => {
+  return review?.slug || review?.id || review?.wpId
 }
 
 export default function Reviews() {
@@ -80,16 +84,22 @@ export default function Reviews() {
 
   const otherReviews = featuredReview
     ? safeReviews.filter((review) => {
-        const featuredId = featuredReview?.id || featuredReview?.wpId || featuredReview?.slug
-        const currentId = review?.id || review?.wpId || review?.slug
+        const featuredId =
+          featuredReview?.id ||
+          featuredReview?.wpId ||
+          featuredReview?.slug
+
+        const currentId =
+          review?.id ||
+          review?.wpId ||
+          review?.slug
+
         return currentId !== featuredId
       })
     : []
 
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary">
-      <Navbar />
-
       <main className="pt-32 pb-20">
         <section className="container-wide">
           <motion.div
@@ -100,6 +110,7 @@ export default function Reviews() {
           >
             <div className="flex items-center gap-3 mb-4">
               <span className="w-2 h-2 rounded-full bg-accent-teal shadow-[0_0_14px_rgba(0,240,200,0.9)]" />
+
               <p className="font-mono text-xs tracking-[0.35em] uppercase text-accent-teal">
                 Expert Analysis
               </p>
@@ -149,7 +160,10 @@ export default function Reviews() {
           {!loading && featuredReview && (
             <>
               <section className="mb-14">
-                <div className="rounded-3xl border border-accent-teal/25 bg-bg-card/90 overflow-hidden shadow-[0_0_40px_rgba(0,240,200,0.08)]">
+                <Link
+                  to={`/reviews/${getReviewSlug(featuredReview)}`}
+                  className="block rounded-3xl border border-accent-teal/25 bg-bg-card/90 overflow-hidden shadow-[0_0_40px_rgba(0,240,200,0.08)] hover:border-accent-teal/50 transition-all duration-300"
+                >
                   <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-0">
                     <div className="p-8 md:p-10">
                       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -170,7 +184,7 @@ export default function Reviews() {
                         )}
                       </div>
 
-                      <h2 className="font-heading text-4xl md:text-6xl uppercase leading-none mb-5">
+                      <h2 className="font-heading text-4xl md:text-6xl uppercase leading-none mb-5 group-hover:text-accent-teal">
                         {getReviewTitle(featuredReview)}
                       </h2>
 
@@ -183,6 +197,7 @@ export default function Reviews() {
                           <span className="text-4xl font-heading text-accent-teal">
                             {featuredReview?.score || 0}
                           </span>
+
                           <span className="text-xs font-mono text-text-muted uppercase">
                             Score
                           </span>
@@ -190,7 +205,10 @@ export default function Reviews() {
 
                         <div>
                           <p className="text-text-primary font-semibold">
-                            {featuredReview?.authorName || featuredReview?.author || featuredReview?.source || 'RoboPulse Staff'}
+                            {featuredReview?.authorName ||
+                              featuredReview?.author ||
+                              featuredReview?.source ||
+                              'RoboPulse Staff'}
                           </p>
 
                           {(featuredReview?.authorTitle || featuredReview?.category) && (
@@ -206,11 +224,16 @@ export default function Reviews() {
                           <p className="font-mono text-xs uppercase tracking-widest text-accent-gold mb-2">
                             Verdict
                           </p>
+
                           <p className="text-text-secondary">
                             {cleanText(featuredReview.verdict)}
                           </p>
                         </div>
                       )}
+
+                      <div className="mt-6 text-accent-teal font-mono text-xs uppercase">
+                        Read full review →
+                      </div>
                     </div>
 
                     <div className="border-t lg:border-t-0 lg:border-l border-white/10 p-8 md:p-10 bg-bg-secondary/50">
@@ -220,6 +243,7 @@ export default function Reviews() {
                             <h3 className="font-mono text-xs uppercase tracking-widest text-accent-teal mb-4">
                               Pros
                             </h3>
+
                             <ul className="space-y-3">
                               {featuredReview.pros.map((item, index) => (
                                 <li key={index} className="flex gap-3 text-text-secondary">
@@ -236,6 +260,7 @@ export default function Reviews() {
                             <h3 className="font-mono text-xs uppercase tracking-widest text-accent-pink mb-4">
                               Cons
                             </h3>
+
                             <ul className="space-y-3">
                               {featuredReview.cons.map((item, index) => (
                                 <li key={index} className="flex gap-3 text-text-secondary">
@@ -262,7 +287,7 @@ export default function Reviews() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               </section>
 
               {otherReviews.length > 0 && (
@@ -273,42 +298,46 @@ export default function Reviews() {
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {otherReviews.map((review, index) => (
-                      <motion.article
+                      <motion.div
                         key={review?.id || review?.wpId || review?.slug || index}
                         initial={{ opacity: 0, y: 18 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.35, delay: index * 0.05 }}
-                        className="rounded-2xl border border-white/10 bg-bg-card/80 p-6 hover:border-accent-teal/40 transition-colors"
                       >
-                        <div className="flex items-center justify-between mb-5">
-                          <span className="font-mono text-xs text-text-muted">
-                            {getReviewDate(review)}
-                          </span>
+                        <Link
+                          to={`/reviews/${getReviewSlug(review)}`}
+                          className="block h-full rounded-2xl border border-white/10 bg-bg-card/80 p-6 hover:border-accent-teal/40 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-5">
+                            <span className="font-mono text-xs text-text-muted">
+                              {getReviewDate(review)}
+                            </span>
 
-                          <span className="text-2xl font-heading text-accent-teal">
-                            {review?.score || 0}
-                          </span>
-                        </div>
+                            <span className="text-2xl font-heading text-accent-teal">
+                              {review?.score || 0}
+                            </span>
+                          </div>
 
-                        <h3 className="font-heading text-3xl uppercase mb-4">
-                          {getReviewTitle(review)}
-                        </h3>
+                          <h3 className="font-heading text-3xl uppercase mb-4">
+                            {getReviewTitle(review)}
+                          </h3>
 
-                        <p className="text-text-secondary text-sm leading-relaxed mb-5">
-                          {cleanText(review?.excerpt || review?.description)}
-                        </p>
+                          <p className="text-text-secondary text-sm leading-relaxed mb-5">
+                            {cleanText(review?.excerpt || review?.description)}
+                          </p>
 
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs text-text-muted">
-                            {review?.readTime || ''}
-                          </span>
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs text-text-muted">
+                              {review?.readTime || ''}
+                            </span>
 
-                          <span className="text-accent-teal font-mono text-xs uppercase">
-                            Review →
-                          </span>
-                        </div>
-                      </motion.article>
+                            <span className="text-accent-teal font-mono text-xs uppercase">
+                              Review →
+                            </span>
+                          </div>
+                        </Link>
+                      </motion.div>
                     ))}
                   </div>
                 </section>
@@ -317,8 +346,6 @@ export default function Reviews() {
           )}
         </section>
       </main>
-
-      <Footer />
     </div>
   )
 }

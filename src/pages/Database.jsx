@@ -67,7 +67,7 @@ export default function Database() {
           {/* Stats banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             {[
-              { label: 'Models Tracked', value: '40+', color: '#00F0C8' },
+              { label: 'Models Tracked', value: '20+', color: '#00F0C8' },
               { label: 'Available Now', value: '3', color: '#00F0C8' },
               { label: 'Avg Price Drop', value: '−16%', color: '#00F0C8' },
               { label: 'New This Month', value: '4', color: '#F5C842' },

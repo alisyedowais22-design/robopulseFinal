@@ -1,5 +1,6 @@
 // pages/News.jsx
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageTransition from '../components/common/PageTransition'
 import { CategoryBadge } from '../components/common/Badge'
@@ -29,6 +30,11 @@ const CATEGORY_COLORS = {
   Funding: 'gold',
   Deployments: 'purple',
   Geopolitics: 'pink',
+  News: 'teal',
+}
+
+function getPostSlug(item) {
+  return item?.slug || item?.id || item?.wpId
 }
 
 export default function News() {
@@ -37,17 +43,29 @@ export default function News() {
 
   useEffect(() => {
     let active = true
-    newsApi.getAll().then((data) => {
-      if (active) setNewsItems(data?.length ? data : NEWS)
-    }).catch(() => {
-      if (active) setNewsItems(NEWS)
-    })
-    return () => { active = false }
+
+    newsApi
+      .getAll()
+      .then((data) => {
+        if (active) {
+          setNewsItems(data?.length ? data : NEWS)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setNewsItems(NEWS)
+        }
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
-  const filtered = activeCategory === 'All'
-    ? newsItems
-    : newsItems.filter(n => n.category === activeCategory)
+  const filtered =
+    activeCategory === 'All'
+      ? newsItems
+      : newsItems.filter((n) => n.category === activeCategory)
 
   return (
     <PageTransition>
@@ -56,16 +74,26 @@ export default function News() {
         <section className="relative py-20 overflow-hidden">
           <div
             className="glow-orb w-96 h-96 opacity-10"
-            style={{ background: 'radial-gradient(circle, #FF4060, transparent 70%)', top: '-10%', left: '20%' }}
+            style={{
+              background: 'radial-gradient(circle, #FF4060, transparent 70%)',
+              top: '-10%',
+              left: '20%',
+            }}
           />
+
           <div className="container-wide relative z-10">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
               <div className="flex items-center gap-3 mb-3">
                 <LiveDot text="LIVE FEED" color="#FF4060" />
               </div>
+
               <h1 className="font-heading text-6xl md:text-8xl tracking-heading text-text-primary mb-4">
                 ROBOT <span className="text-accent-pink">NEWS</span>
               </h1>
+
               <p className="text-text-secondary max-w-xl leading-relaxed">
                 Breaking news, funding rounds, product launches, and geopolitical shifts in the humanoid robot industry.
               </p>
@@ -78,15 +106,19 @@ export default function News() {
           <div className="flex items-center gap-2 flex-wrap mb-8">
             {CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat
-              const color = cat === 'All' ? 'pink' : CATEGORY_COLORS[cat]
+
               return (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
                   style={{
-                    background: isActive ? 'rgba(255,64,96,0.12)' : 'rgba(255,255,255,0.04)',
-                    border: isActive ? '1px solid rgba(255,64,96,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                    background: isActive
+                      ? 'rgba(255,64,96,0.12)'
+                      : 'rgba(255,255,255,0.04)',
+                    border: isActive
+                      ? '1px solid rgba(255,64,96,0.3)'
+                      : '1px solid rgba(255,255,255,0.06)',
                     color: isActive ? '#FF4060' : '#7A8299',
                   }}
                 >
@@ -99,47 +131,81 @@ export default function News() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* News list */}
             <div className="lg:col-span-2 space-y-4">
-              {filtered.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.07 }}
-                  className="group rounded-xl p-5 cursor-pointer transition-all duration-300"
-                  style={{ background: '#0D1020', border: '1px solid rgba(255,255,255,0.06)' }}
-                  onClick={() => alert(`Opening article: ${item.title}`)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = 'none'
+              {filtered.map((item, i) => {
+                const postSlug = getPostSlug(item)
+                const postUrl = postSlug ? `/news/${postSlug}` : '/news'
+
+                return (
+                  <motion.div
+                    key={item.id || item.slug || i}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                  >
+                    <Link
+                      to={postUrl}
+                      className="group block rounded-xl p-5 cursor-pointer transition-all duration-300"
+                      style={{
+                        background: '#0D1020',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <CategoryBadge
+                              category={item.category || 'News'}
+                              color={CATEGORY_COLORS[item.category] || 'teal'}
+                            />
+
+                            <span className="text-xs text-text-muted font-mono">
+                              {formatDate(item.date)}
+                            </span>
+                          </div>
+
+                          <h3 className="font-semibold text-text-primary mb-2 leading-snug group-hover:text-accent-teal transition-colors">
+                            {item.title}
+                          </h3>
+
+                          <p className="text-sm text-text-secondary leading-relaxed mb-3">
+                            {item.excerpt || item.description}
+                          </p>
+
+                          <div className="flex items-center gap-3 text-xs text-text-secondary font-mono">
+                            <span>{item.source || 'RoboPulse Staff'}</span>
+                            <span>·</span>
+                            <span>{item.readTime || '4 min'} read</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                )
+              })}
+
+              {filtered.length === 0 && (
+                <div
+                  className="rounded-xl p-6"
+                  style={{
+                    background: '#0D1020',
+                    border: '1px solid rgba(255,255,255,0.06)',
                   }}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <CategoryBadge category={item.category} color={CATEGORY_COLORS[item.category] || 'teal'} />
-                        <span className="text-xs text-text-muted font-mono">{formatDate(item.date)}</span>
-                      </div>
-                      <h3 className="font-semibold text-text-primary mb-2 leading-snug group-hover:text-accent-teal transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-text-secondary leading-relaxed mb-3">
-                        {item.excerpt}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-text-secondary font-mono">
-                        <span>{item.source}</span>
-                        <span>·</span>
-                        <span>{item.readTime} read</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  <p className="text-text-secondary">
+                    No news found in this category.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -147,18 +213,35 @@ export default function News() {
               {/* By the numbers */}
               <div
                 className="rounded-xl p-5"
-                style={{ background: '#0D1020', border: '1px solid rgba(255,255,255,0.06)' }}
+                style={{
+                  background: '#0D1020',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
               >
-                <h3 className="font-heading text-lg tracking-heading text-text-primary mb-4">BY THE NUMBERS</h3>
+                <h3 className="font-heading text-lg tracking-heading text-text-primary mb-4">
+                  BY THE NUMBERS
+                </h3>
+
                 <div className="grid grid-cols-2 gap-3">
                   {BY_THE_NUMBERS.map((stat) => (
                     <div
                       key={stat.label}
                       className="rounded-lg p-3 text-center"
-                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+                      style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.04)',
+                      }}
                     >
-                      <p className="text-xl font-mono font-bold" style={{ color: stat.color }}>{stat.value}</p>
-                      <p className="text-xs text-text-secondary mt-1 leading-tight">{stat.label}</p>
+                      <p
+                        className="text-xl font-mono font-bold"
+                        style={{ color: stat.color }}
+                      >
+                        {stat.value}
+                      </p>
+
+                      <p className="text-xs text-text-secondary mt-1 leading-tight">
+                        {stat.label}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -167,23 +250,42 @@ export default function News() {
               {/* Upcoming Events */}
               <div
                 className="rounded-xl p-5"
-                style={{ background: '#0D1020', border: '1px solid rgba(255,255,255,0.06)' }}
+                style={{
+                  background: '#0D1020',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
               >
-                <h3 className="font-heading text-lg tracking-heading text-text-primary mb-4">UPCOMING EVENTS</h3>
+                <h3 className="font-heading text-lg tracking-heading text-text-primary mb-4">
+                  UPCOMING EVENTS
+                </h3>
+
                 <div className="space-y-3">
                   {UPCOMING_EVENTS.map((event, i) => (
                     <div
                       key={i}
                       className="flex items-center gap-3 py-2"
-                      style={{ borderBottom: i < UPCOMING_EVENTS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                      style={{
+                        borderBottom:
+                          i < UPCOMING_EVENTS.length - 1
+                            ? '1px solid rgba(255,255,255,0.04)'
+                            : 'none',
+                      }}
                     >
                       <div
                         className="flex-shrink-0 w-14 text-center rounded py-1"
-                        style={{ background: 'rgba(108,99,255,0.1)', border: '1px solid rgba(108,99,255,0.2)' }}
+                        style={{
+                          background: 'rgba(108,99,255,0.1)',
+                          border: '1px solid rgba(108,99,255,0.2)',
+                        }}
                       >
-                        <span className="text-xs font-mono font-bold text-accent-purple">{event.date}</span>
+                        <span className="text-xs font-mono font-bold text-accent-purple">
+                          {event.date}
+                        </span>
                       </div>
-                      <p className="text-sm text-text-secondary">{event.name}</p>
+
+                      <p className="text-sm text-text-secondary">
+                        {event.name}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -193,15 +295,26 @@ export default function News() {
               <div
                 className="rounded-xl p-5 text-center"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(0,240,200,0.06), rgba(108,99,255,0.06))',
+                  background:
+                    'linear-gradient(135deg, rgba(0,240,200,0.06), rgba(108,99,255,0.06))',
                   border: '1px solid rgba(0,240,200,0.12)',
                 }}
               >
-                <p className="text-xs font-mono text-accent-teal uppercase tracking-widest mb-2">Stay Updated</p>
-                <p className="text-sm text-text-secondary mb-4">Get this news in your inbox every week.</p>
+                <p className="text-xs font-mono text-accent-teal uppercase tracking-widest mb-2">
+                  Stay Updated
+                </p>
+
+                <p className="text-sm text-text-secondary mb-4">
+                  Get this news in your inbox every week.
+                </p>
+
                 <button
                   className="btn btn-primary w-full justify-center text-sm"
-                  style={{ background: '#00F0C8', color: '#05060A', fontWeight: 700 }}
+                  style={{
+                    background: '#00F0C8',
+                    color: '#05060A',
+                    fontWeight: 700,
+                  }}
                   onClick={() => alert('Subscribe to newsletter!')}
                 >
                   Subscribe Free →

@@ -62,7 +62,7 @@ export default function About() {
                 >
                   Explore the 2026 Rankings →
                 </button>
-                <span className="text-xs font-mono text-text-muted">40+ models scored & compared</span>
+                <span className="text-xs font-mono text-text-muted">20+ models scored & compared</span>
               </div>
             </div>
           </div>
@@ -103,7 +103,7 @@ export default function About() {
           <div className="container-wide">
             <div className="flex flex-wrap rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
               {[
-                { val: '40+', label: 'Models in database' },
+                { val: '20+', label: 'Models in database' },
                 { val: '12', label: 'Available now in 2026' },
                 { val: 'Daily', label: 'News coverage' },
                 { val: '6', label: 'Scoring categories' },
