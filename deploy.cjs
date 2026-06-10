@@ -23,20 +23,6 @@ function loadEnv(filePath) {
   }
 }
 
-function getAssetsFromIndex(indexHtmlPath) {
-  const html = fs.readFileSync(indexHtmlPath, "utf8");
-  const assets = new Set();
-
-  const regex = /\/assets\/([^"']+\.(js|css))/g;
-  let match;
-
-  while ((match = regex.exec(html)) !== null) {
-    assets.add(match[1]);
-  }
-
-  return Array.from(assets);
-}
-
 async function connectClient() {
   const client = new ftp.Client(300000);
   client.ftp.verbose = true;
@@ -55,24 +41,57 @@ async function connectClient() {
   return client;
 }
 
-async function uploadWithRetry(localPath, remoteDir, remoteName, retries = 3) {
+function getAllFiles(dir, baseDir = dir) {
+  const files = [];
+  const items = fs.readdirSync(dir);
+
+  for (const item of items) {
+    const fullPath = path.join(dir, item);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      files.push(...getAllFiles(fullPath, baseDir));
+    } else {
+      const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, "/");
+      files.push({
+        fullPath,
+        relativePath,
+      });
+    }
+  }
+
+  return files;
+}
+
+async function uploadWithRetry(localPath, remoteRoot, relativePath, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     let client;
 
     try {
       client = await connectClient();
+
+      const remotePath = relativePath.replace(/\\/g, "/");
+      const remoteDirPart = path.posix.dirname(remotePath);
+      const remoteFileName = path.posix.basename(remotePath);
+
+      const cleanRemoteRoot = remoteRoot.replace(/\/$/, "");
+      const remoteDir =
+        remoteDirPart === "."
+          ? cleanRemoteRoot
+          : `${cleanRemoteRoot}/${remoteDirPart}`;
+
       await client.ensureDir(remoteDir);
 
-      console.log(`Uploading ${remoteName}... attempt ${attempt}`);
-      await client.uploadFrom(localPath, remoteName);
-      console.log(`Uploaded ${remoteName}`);
+      console.log(`Uploading ${relativePath}... attempt ${attempt}`);
+      await client.uploadFrom(localPath, remoteFileName);
+      console.log(`Uploaded ${relativePath}`);
 
       client.close();
       return;
     } catch (error) {
       if (client) client.close();
 
-      console.log(`Failed ${remoteName}: ${error.message}`);
+      console.log(`Failed ${relativePath}: ${error.message}`);
 
       if (attempt === retries) {
         throw error;
@@ -130,41 +149,37 @@ async function deploy() {
   loadEnv(path.join(__dirname, ".env.deploy"));
 
   const remoteRoot = process.env.FTP_REMOTE_ROOT || "/public_html/";
-  const remoteAssets = `${remoteRoot.replace(/\/$/, "")}/assets`;
 
   if (!process.env.FTP_HOST || !process.env.FTP_USER || !process.env.FTP_PASSWORD) {
     throw new Error("FTP_HOST, FTP_USER, or FTP_PASSWORD missing in .env.deploy");
   }
 
   const distDir = path.join(__dirname, "dist");
-  const assetsDir = path.join(distDir, "assets");
   const indexHtml = path.join(distDir, "index.html");
+
+  if (!fs.existsSync(distDir)) {
+    throw new Error("dist folder not found. Run npm run build first.");
+  }
 
   if (!fs.existsSync(indexHtml)) {
     throw new Error("dist/index.html not found. Run npm run build first.");
   }
 
-  const assetFiles = getAssetsFromIndex(indexHtml);
+  const allFiles = getAllFiles(distDir);
 
-  if (!assetFiles.length) {
-    throw new Error("No JS/CSS assets found inside dist/index.html.");
-  }
+  const filesExceptIndex = allFiles.filter(
+    (file) => file.relativePath !== "index.html"
+  );
 
-  console.log("Starting RoboPulse direct deploy...");
-  console.log("Images/logo/.htaccess skipped for stable deploy.");
-  console.log("Assets found:");
-  assetFiles.forEach((file) => console.log(" - " + file));
+  console.log("Starting RoboPulse full direct deploy...");
+  console.log(`Remote root: ${remoteRoot}`);
+  console.log("Files found:");
+  allFiles.forEach((file) => console.log(" - " + file.relativePath));
 
-  console.log("Step 1: Uploading JS/CSS first...");
+  console.log("Step 1: Uploading all files except index.html...");
 
-  for (const fileName of assetFiles) {
-    const localAssetPath = path.join(assetsDir, fileName);
-
-    if (!fs.existsSync(localAssetPath)) {
-      throw new Error(`Missing local asset: ${localAssetPath}`);
-    }
-
-    await uploadWithRetry(localAssetPath, remoteAssets, fileName);
+  for (const file of filesExceptIndex) {
+    await uploadWithRetry(file.fullPath, remoteRoot, file.relativePath);
   }
 
   console.log("Step 2: Uploading index.html safely...");

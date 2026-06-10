@@ -1,5 +1,5 @@
 // pages/Guides.jsx
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
@@ -9,33 +9,96 @@ import { GUIDES } from '../utils/mockData'
 import { guidesApi } from '../api/endpoints'
 
 function getGuideSlug(guide) {
-  return guide?.slug || guide?.id || guide?.wpId
+  return guide.slug || guide.id || guide.wpId
+}
+
+function getGuideUrl(guide) {
+  return `/guides/${getGuideSlug(guide)}`
+}
+
+function normalizeGuideType(type) {
+  const value = String(type || '').toLowerCase().trim()
+
+  if (
+    value === 'buyers' ||
+    value === 'buyer' ||
+    value === 'buying' ||
+    value === 'buyer-guide' ||
+    value === 'buyers-guide' ||
+    value === "buyer's guide" ||
+    value === 'buying-guide'
+  ) {
+    return 'buyers'
+  }
+
+  if (
+    value === 'explainer' ||
+    value === 'explainers' ||
+    value === 'technical' ||
+    value === 'technical-explainer'
+  ) {
+    return 'explainer'
+  }
+
+  if (
+    value === 'deep-dive' ||
+    value === 'deep dive' ||
+    value === 'deepdive' ||
+    value === 'industry' ||
+    value === 'analysis' ||
+    value === 'industry-analysis'
+  ) {
+    return 'deep-dive'
+  }
+
+  return 'all'
 }
 
 function getGuideTags(guide) {
-  return Array.isArray(guide?.tags) ? guide.tags : []
+  const guideType = normalizeGuideType(guide.type || guide.guideType)
+
+  if (guideType === 'buyers') {
+    return ["Buyer's Guide"]
+  }
+
+  if (guideType === 'explainer') {
+    return ['Explainer']
+  }
+
+  if (guideType === 'deep-dive') {
+    return ['Deep Dive']
+  }
+
+  return ['Guide']
 }
 
-function GuideCard({ guide, index }) {
+function getGuideDescription(guide) {
+  return guide.description || guide.excerpt || 'Read the latest guide from RoboPulse.'
+}
+
+function GuideCard({ guide, index, color = 'gold' }) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
-  const guideSlug = getGuideSlug(guide)
+  const tags = getGuideTags(guide)
 
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, y: 16 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.07 }}
+      transition={{ delay: index * 0.05 }}
     >
       <Link
-        to={`/guides/${guideSlug}`}
-        className="group block rounded-xl p-5 cursor-pointer transition-all duration-300"
+        to={getGuideUrl(guide)}
+        className="group block rounded-xl p-5 transition-all duration-300 h-full"
         style={{
           background: '#0D1020',
           border: '1px solid rgba(255,255,255,0.06)',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(245,200,66,0.25)'
+          e.currentTarget.style.borderColor =
+            color === 'purple'
+              ? 'rgba(108,99,255,0.3)'
+              : 'rgba(245,200,66,0.25)'
           e.currentTarget.style.transform = 'translateY(-3px)'
           e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
         }}
@@ -47,25 +110,37 @@ function GuideCard({ guide, index }) {
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex gap-2 flex-wrap">
-            {getGuideTags(guide).map((tag) => (
-              <CategoryBadge key={tag} category={tag} color="gold" />
+            {tags.map((tag) => (
+              <CategoryBadge key={tag} category={tag} color={color} />
             ))}
           </div>
 
-          <span className="text-xs font-mono text-text-muted flex-shrink-0">
-            {guide.readTime || '5 min'}
-          </span>
+          {guide.readTime && (
+            <span className="text-xs font-mono text-text-muted flex-shrink-0">
+              {guide.readTime}
+            </span>
+          )}
         </div>
 
-        <h3 className="font-semibold text-text-primary mb-2 leading-snug group-hover:text-accent-gold transition-colors">
+        <h3
+          className={`font-semibold text-text-primary mb-2 leading-snug transition-colors ${
+            color === 'purple'
+              ? 'group-hover:text-accent-purple'
+              : 'group-hover:text-accent-gold'
+          }`}
+        >
           {guide.title}
         </h3>
 
         <p className="text-sm text-text-secondary leading-relaxed">
-          {guide.description || guide.excerpt}
+          {getGuideDescription(guide)}
         </p>
 
-        <div className="mt-4 text-xs font-mono text-accent-gold opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          className={`mt-4 text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity ${
+            color === 'purple' ? 'text-accent-purple' : 'text-accent-gold'
+          }`}
+        >
           Read guide →
         </div>
       </Link>
@@ -74,17 +149,17 @@ function GuideCard({ guide, index }) {
 }
 
 function ExplainerRow({ guide, index }) {
-  const guideSlug = getGuideSlug(guide)
+  const tags = getGuideTags(guide)
 
   return (
     <motion.div
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.06 }}
+      transition={{ delay: index * 0.05 }}
     >
       <Link
-        to={`/guides/${guideSlug}`}
-        className="group flex items-start gap-4 py-4 cursor-pointer transition-colors"
+        to={getGuideUrl(guide)}
+        className="group flex items-start gap-4 py-4 transition-colors"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
       >
         <div
@@ -104,75 +179,21 @@ function ExplainerRow({ guide, index }) {
           </h4>
 
           <p className="text-sm text-text-secondary">
-            {guide.description || guide.excerpt}
+            {getGuideDescription(guide)}
           </p>
 
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {getGuideTags(guide).map((tag) => (
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {tags.map((tag) => (
               <CategoryBadge key={tag} category={tag} color="purple" />
             ))}
           </div>
         </div>
 
-        <span className="text-xs font-mono text-text-muted flex-shrink-0">
-          {guide.readTime || '5 min'}
-        </span>
-      </Link>
-    </motion.div>
-  )
-}
-
-function DeepDiveCard({ guide, index }) {
-  const guideSlug = getGuideSlug(guide)
-
-  return (
-    <motion.div
-      key={guide.id || guide.slug || index}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-    >
-      <Link
-        to={`/guides/${guideSlug}`}
-        className="group block rounded-xl p-5 cursor-pointer transition-all duration-300"
-        style={{
-          background: 'linear-gradient(135deg, rgba(108,99,255,0.06), rgba(13,16,32,1))',
-          border: '1px solid rgba(108,99,255,0.15)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(108,99,255,0.3)'
-          e.currentTarget.style.transform = 'translateY(-3px)'
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(108,99,255,0.15)'
-          e.currentTarget.style.transform = 'translateY(0)'
-          e.currentTarget.style.boxShadow = 'none'
-        }}
-      >
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex gap-2 flex-wrap">
-            {getGuideTags(guide).map((tag) => (
-              <CategoryBadge key={tag} category={tag} color="purple" />
-            ))}
-          </div>
-
-          <span className="text-xs font-mono text-text-muted">
-            {guide.readTime || '8 min'}
+        {guide.readTime && (
+          <span className="text-xs font-mono text-text-muted flex-shrink-0">
+            {guide.readTime}
           </span>
-        </div>
-
-        <h3 className="font-semibold text-text-primary mb-2 leading-snug group-hover:text-accent-purple transition-colors">
-          {guide.title}
-        </h3>
-
-        <p className="text-sm text-text-secondary">
-          {guide.description || guide.excerpt}
-        </p>
-
-        <div className="mt-4 text-xs font-mono text-accent-purple opacity-0 group-hover:opacity-100 transition-opacity">
-          Read deep dive →
-        </div>
+        )}
       </Link>
     </motion.div>
   )
@@ -180,27 +201,64 @@ function DeepDiveCard({ guide, index }) {
 
 export default function Guides() {
   const [guides, setGuides] = useState(GUIDES)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let active = true
 
-    guidesApi
-      .getAll()
-      .then((data) => {
-        if (active) setGuides(data?.length ? data : GUIDES)
-      })
-      .catch(() => {
-        if (active) setGuides(GUIDES)
-      })
+    async function loadGuides() {
+      try {
+        setLoading(true)
+
+        const data = await guidesApi.getAll()
+
+        if (active) {
+          setGuides(Array.isArray(data) && data.length ? data : GUIDES)
+        }
+      } catch (error) {
+        console.error('Guides loading error:', error)
+
+        if (active) {
+          setGuides(GUIDES)
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadGuides()
 
     return () => {
       active = false
     }
   }, [])
 
-  const buyersGuides = guides.filter((g) => g.type === 'buyers')
-  const explainers = guides.filter((g) => g.type === 'explainer')
-  const deepDives = guides.filter((g) => g.type === 'deep-dive')
+  const groupedGuides = useMemo(() => {
+    const all = Array.isArray(guides) ? guides : []
+
+    return {
+      all,
+      buyers: all.filter(
+        (guide) => normalizeGuideType(guide.type || guide.guideType) === 'buyers'
+      ),
+      explainers: all.filter(
+        (guide) => normalizeGuideType(guide.type || guide.guideType) === 'explainer'
+      ),
+      deepDives: all.filter(
+        (guide) => normalizeGuideType(guide.type || guide.guideType) === 'deep-dive'
+      ),
+      uncategorized: all.filter(
+        (guide) => normalizeGuideType(guide.type || guide.guideType) === 'all'
+      ),
+    }
+  }, [guides])
+
+  const shouldShowStructuredSections =
+    groupedGuides.buyers.length > 0 ||
+    groupedGuides.explainers.length > 0 ||
+    groupedGuides.deepDives.length > 0
 
   return (
     <PageTransition>
@@ -237,97 +295,195 @@ export default function Guides() {
         </section>
 
         <div className="container-wide pb-20 space-y-16">
-          {/* Section 1: Buyer's Guides */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl">📘</span>
-
-              <div>
-                <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                  BUYER&apos;S GUIDES
-                </h2>
-
-                <p className="text-sm text-text-muted">
-                  Essential reading before you spend five figures on a robot
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {buyersGuides.map((guide, i) => (
-                <GuideCard
-                  key={guide.id || guide.slug || i}
-                  guide={guide}
-                  index={i}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* Section 2: Explainers */}
-          <section>
+          {loading && (
             <div
-              className="rounded-xl overflow-hidden"
+              className="rounded-xl p-5"
               style={{
                 background: '#0D1020',
                 border: '1px solid rgba(255,255,255,0.06)',
               }}
             >
-              <div
-                className="px-6 py-5 flex items-center gap-3"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-              >
-                <span className="text-2xl">🔬</span>
+              <p className="text-text-secondary font-mono text-sm">
+                Loading guides...
+              </p>
+            </div>
+          )}
+
+          {!loading && groupedGuides.all.length === 0 && (
+            <div
+              className="rounded-xl p-5"
+              style={{
+                background: '#0D1020',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <p className="text-text-secondary">
+                No guides found.
+              </p>
+            </div>
+          )}
+
+          {!loading && groupedGuides.all.length > 0 && !shouldShowStructuredSections && (
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-2xl">📘</span>
 
                 <div>
                   <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                    EXPLAINERS
+                    ALL GUIDES
                   </h2>
 
                   <p className="text-sm text-text-muted">
-                    Technical concepts explained clearly for non-engineers
+                    Latest guides from RoboPulse
                   </p>
                 </div>
               </div>
 
-              <div className="px-6">
-                {explainers.map((guide, i) => (
-                  <ExplainerRow
-                    key={guide.id || guide.slug || i}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {groupedGuides.all.map((guide, index) => (
+                  <GuideCard
+                    key={guide.wpId || guide.id || guide.slug}
                     guide={guide}
-                    index={i}
+                    index={index}
                   />
                 ))}
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
-          {/* Section 3: Deep Dives */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl">🌐</span>
+          {!loading && shouldShowStructuredSections && (
+            <>
+              {/* Buyer Guides */}
+              {groupedGuides.buyers.length > 0 && (
+                <section>
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="text-2xl">📘</span>
 
-              <div>
-                <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                  INDUSTRY DEEP DIVES
-                </h2>
+                    <div>
+                      <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                        BUYER&apos;S GUIDES
+                      </h2>
 
-                <p className="text-sm text-text-muted">
-                  Longform analysis of the forces shaping robotics
-                </p>
-              </div>
-            </div>
+                      <p className="text-sm text-text-muted">
+                        Essential reading before you spend five figures on a robot
+                      </p>
+                    </div>
+                  </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {deepDives.map((guide, i) => (
-                <DeepDiveCard
-                  key={guide.id || guide.slug || i}
-                  guide={guide}
-                  index={i}
-                />
-              ))}
-            </div>
-          </section>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {groupedGuides.buyers.map((guide, index) => (
+                      <GuideCard
+                        key={guide.wpId || guide.id || guide.slug}
+                        guide={guide}
+                        index={index}
+                        color="gold"
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Explainers */}
+              {groupedGuides.explainers.length > 0 && (
+                <section>
+                  <div
+                    className="rounded-xl overflow-hidden"
+                    style={{
+                      background: '#0D1020',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div
+                      className="px-6 py-5 flex items-center gap-3"
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                    >
+                      <span className="text-2xl">🔬</span>
+
+                      <div>
+                        <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                          EXPLAINERS
+                        </h2>
+
+                        <p className="text-sm text-text-muted">
+                          Technical concepts explained clearly for non-engineers
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="px-6">
+                      {groupedGuides.explainers.map((guide, index) => (
+                        <ExplainerRow
+                          key={guide.wpId || guide.id || guide.slug}
+                          guide={guide}
+                          index={index}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Deep Dives */}
+              {groupedGuides.deepDives.length > 0 && (
+                <section>
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="text-2xl">🌐</span>
+
+                    <div>
+                      <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                        INDUSTRY DEEP DIVES
+                      </h2>
+
+                      <p className="text-sm text-text-muted">
+                        Longform analysis of the forces shaping robotics
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {groupedGuides.deepDives.map((guide, index) => (
+                      <GuideCard
+                        key={guide.wpId || guide.id || guide.slug}
+                        guide={guide}
+                        index={index}
+                        color="purple"
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Other / uncategorized guides */}
+              {groupedGuides.uncategorized.length > 0 && (
+                <section>
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="text-2xl">📄</span>
+
+                    <div>
+                      <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                        MORE GUIDES
+                      </h2>
+
+                      <p className="text-sm text-text-muted">
+                        Additional guides and resources
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {groupedGuides.uncategorized.map((guide, index) => (
+                      <GuideCard
+                        key={guide.wpId || guide.id || guide.slug}
+                        guide={guide}
+                        index={index}
+                        color="gold"
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
         </div>
       </div>
     </PageTransition>

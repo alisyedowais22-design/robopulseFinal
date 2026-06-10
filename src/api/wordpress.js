@@ -7,9 +7,61 @@ export const isWordPressEnabled = () => {
   return ENABLE_WORDPRESS && !USE_MOCK
 }
 
+function decodeHtmlEntities(value) {
+  if (!value) return ''
+
+  let text = String(value)
+
+  // Double encoded entities fix:
+  // &amp;#8217; -> &#8217;
+  // &amp;hellip; -> &hellip;
+  for (let i = 0; i < 3; i += 1) {
+    text = text.replace(/&amp;(#\d+;|#x[a-fA-F0-9]+;|[a-zA-Z]+;)/g, '&$1')
+  }
+
+  const namedEntities = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#039;': "'",
+    '&apos;': "'",
+    '&hellip;': '…',
+    '&ndash;': '–',
+    '&mdash;': '—',
+    '&lsquo;': '‘',
+    '&rsquo;': '’',
+    '&ldquo;': '“',
+    '&rdquo;': '”',
+  }
+
+  Object.entries(namedEntities).forEach(([entity, replacement]) => {
+    text = text.split(entity).join(replacement)
+  })
+
+  text = text.replace(/&#(\d+);/g, (_, code) => {
+    try {
+      return String.fromCharCode(Number(code))
+    } catch {
+      return _
+    }
+  })
+
+  text = text.replace(/&#x([a-fA-F0-9]+);/g, (_, code) => {
+    try {
+      return String.fromCharCode(parseInt(code, 16))
+    } catch {
+      return _
+    }
+  })
+
+  return text.trim()
+}
+
 function stripHtml(value) {
   if (!value) return ''
-  return String(value).replace(/<[^>]*>/g, '').trim()
+  return decodeHtmlEntities(String(value).replace(/<[^>]*>/g, '').trim())
 }
 
 export async function wpFetch(route) {
@@ -54,40 +106,111 @@ export async function robopulseFetch(route) {
   return response.json()
 }
 
+function getFeaturedImage(item, acf = {}) {
+  const featuredMedia = item._embedded?.['wp:featuredmedia']?.[0] || null
+
+  return (
+    featuredMedia?.source_url ||
+    featuredMedia?.media_details?.sizes?.full?.source_url ||
+    featuredMedia?.media_details?.sizes?.large?.source_url ||
+    featuredMedia?.media_details?.sizes?.medium_large?.source_url ||
+    featuredMedia?.media_details?.sizes?.medium?.source_url ||
+    item.featuredImage ||
+    item.featured_image ||
+    item.image ||
+    item.thumbnail ||
+    acf.featuredImage ||
+    acf.featured_image ||
+    acf.image ||
+    acf.thumbnail ||
+    ''
+  )
+}
+
 export function normalizeRobot(item) {
   const acf = item.acf || {}
+
   const wpAuthor = item._embedded?.author?.[0] || null
+  const rpAuthor = item.rp_author || null
+  const featuredImage = getFeaturedImage(item, acf)
+
+  const authorName = decodeHtmlEntities(
+    rpAuthor?.name ||
+      wpAuthor?.name ||
+      item.authorName ||
+      acf.authorName ||
+      acf.author ||
+      'RoboPulse Staff'
+  )
+
+  const authorAvatar =
+    rpAuthor?.avatar ||
+    wpAuthor?.avatar_urls?.['96'] ||
+    wpAuthor?.avatar_urls?.['48'] ||
+    wpAuthor?.avatar_urls?.['24'] ||
+    item.authorAvatar ||
+    acf.authorAvatar ||
+    acf.authorImage ||
+    ''
+
+  const authorBio = decodeHtmlEntities(
+    rpAuthor?.bio ||
+      wpAuthor?.description ||
+      item.authorBio ||
+      acf.authorBio ||
+      acf.authorDescription ||
+      ''
+  )
+
+  const authorSlug =
+    rpAuthor?.slug ||
+    wpAuthor?.slug ||
+    item.authorSlug ||
+    acf.authorSlug ||
+    ''
 
   return {
     id: acf.originalId || item.slug || String(item.id),
-    name: acf.name || item.title?.rendered || '',
-    maker: acf.maker || '',
-    country: acf.country || '',
+    name: decodeHtmlEntities(acf.name || item.title?.rendered || ''),
+    maker: decodeHtmlEntities(acf.maker || ''),
+    country: decodeHtmlEntities(acf.country || ''),
     countryCode: acf.countryCode || '',
-    price: acf.price || '',
+    price: decodeHtmlEntities(acf.price || ''),
     priceNum: Number(acf.priceNum || 0),
-    availability: acf.availability || '',
+    availability: decodeHtmlEntities(acf.availability || ''),
     availClass: acf.availClass || '',
     score: Number(acf.score || 0),
-    dof: acf.dof || '',
-    height: acf.height || '',
-    weight: acf.weight || '',
-    speed: acf.speed || '',
-    battery: acf.battery || '',
-    ai: acf.ai || '',
-    hand: acf.hand || '',
-    deploy: acf.deploy || '',
-    payload: acf.payload || '',
-    tags: Array.isArray(acf.tags) ? acf.tags : [],
+    dof: decodeHtmlEntities(acf.dof || ''),
+    height: decodeHtmlEntities(acf.height || ''),
+    weight: decodeHtmlEntities(acf.weight || ''),
+    speed: decodeHtmlEntities(acf.speed || ''),
+    battery: decodeHtmlEntities(acf.battery || ''),
+    ai: decodeHtmlEntities(acf.ai || ''),
+    hand: decodeHtmlEntities(acf.hand || ''),
+    deploy: decodeHtmlEntities(acf.deploy || ''),
+    payload: decodeHtmlEntities(acf.payload || ''),
+    tags: Array.isArray(acf.tags) ? acf.tags.map(decodeHtmlEntities) : [],
     scoreBreakdown: acf.scoreBreakdown || {},
-    verdict: acf.verdict || '',
-    pros: Array.isArray(acf.pros) ? acf.pros : [],
-    cons: Array.isArray(acf.cons) ? acf.cons : [],
-    excerpt: acf.excerpt || stripHtml(item.excerpt?.rendered) || '',
-    content: item.content?.rendered || '',
-    authorName: wpAuthor?.name || acf.authorName || acf.author || 'RoboPulse Staff',
-    authorId: item.author || wpAuthor?.id || '',
-    authorSlug: wpAuthor?.slug || '',
+    verdict: decodeHtmlEntities(acf.verdict || ''),
+    pros: Array.isArray(acf.pros) ? acf.pros.map(decodeHtmlEntities) : [],
+    cons: Array.isArray(acf.cons) ? acf.cons.map(decodeHtmlEntities) : [],
+    excerpt: decodeHtmlEntities(acf.excerpt) || stripHtml(item.excerpt?.rendered) || '',
+    content: decodeHtmlEntities(item.content?.rendered || ''),
+
+    authorName,
+    author: authorName,
+    authorAvatar,
+    authorImage: authorAvatar,
+    authorBio,
+    authorDescription: authorBio,
+    authorId: rpAuthor?.id || item.author || wpAuthor?.id || '',
+    authorSlug,
+
+    featuredImage,
+    image: featuredImage,
+    thumbnail: featuredImage,
+    featuredMediaId: item.featured_media || '',
+
     slug: item.slug,
     wpId: item.id,
   }
@@ -96,10 +219,10 @@ export function normalizeRobot(item) {
 export function normalizeAuthor(item) {
   return {
     id: item.id,
-    name: item.name || 'RoboPulse Author',
+    name: decodeHtmlEntities(item.name || 'RoboPulse Author'),
     slug: item.slug || '',
-    bio: item.description || item.bio || '',
-    description: item.description || item.bio || '',
+    bio: decodeHtmlEntities(item.description || item.bio || ''),
+    description: decodeHtmlEntities(item.description || item.bio || ''),
     link: item.link || '',
     avatar:
       item.avatar ||
@@ -114,38 +237,41 @@ export function normalizeAuthor(item) {
 export function normalizePost(item) {
   const acf = item.acf || {}
 
-  const renderedTitle =
+  const renderedTitle = decodeHtmlEntities(
     item.title?.rendered ||
-    item.title ||
-    ''
+      item.title ||
+      ''
+  )
 
-  const renderedExcerpt =
+  const renderedExcerpt = decodeHtmlEntities(
     item.excerpt?.rendered ||
-    item.excerpt ||
-    ''
+      item.excerpt ||
+      ''
+  )
 
-  const renderedContent =
+  const renderedContent = decodeHtmlEntities(
     item.content?.rendered ||
-    item.content ||
-    ''
+      item.content ||
+      ''
+  )
 
   const wpAuthor = item._embedded?.author?.[0] || null
+  const rpAuthor = item.rp_author || null
+  const featuredImage = getFeaturedImage(item, acf)
 
-  /*
-    Important fix:
-    Real WordPress author ko first priority di hai.
-    Pehle acf.author/source aa raha tha, isliye Reviews/Guides me old author show ho raha tha.
-  */
-  const authorName =
-    wpAuthor?.name ||
-    item.authorName ||
-    acf.authorName ||
-    acf.author ||
-    item.source ||
-    acf.source ||
-    'RoboPulse Staff'
+  const authorName = decodeHtmlEntities(
+    rpAuthor?.name ||
+      wpAuthor?.name ||
+      item.authorName ||
+      acf.authorName ||
+      acf.author ||
+      item.source ||
+      acf.source ||
+      'RoboPulse Staff'
+  )
 
   const authorAvatar =
+    rpAuthor?.avatar ||
     wpAuthor?.avatar_urls?.['96'] ||
     wpAuthor?.avatar_urls?.['48'] ||
     wpAuthor?.avatar_urls?.['24'] ||
@@ -155,15 +281,18 @@ export function normalizePost(item) {
     acf.authorAvatar ||
     ''
 
-  const authorBio =
-    wpAuthor?.description ||
-    item.authorBio ||
-    item.authorDescription ||
-    acf.authorBio ||
-    acf.authorDescription ||
-    ''
+  const authorBio = decodeHtmlEntities(
+    rpAuthor?.bio ||
+      wpAuthor?.description ||
+      item.authorBio ||
+      item.authorDescription ||
+      acf.authorBio ||
+      acf.authorDescription ||
+      ''
+  )
 
   const authorSlug =
+    rpAuthor?.slug ||
     wpAuthor?.slug ||
     item.authorSlug ||
     acf.authorSlug ||
@@ -173,45 +302,42 @@ export function normalizePost(item) {
     id: acf.originalId || item.slug || String(item.id),
 
     title: renderedTitle,
-    name: acf.name || renderedTitle,
+    name: decodeHtmlEntities(acf.name || renderedTitle),
 
     excerpt:
-      acf.excerpt ||
-      acf.description ||
+      decodeHtmlEntities(acf.excerpt) ||
+      decodeHtmlEntities(acf.description) ||
       stripHtml(renderedExcerpt) ||
       '',
 
     description:
-      acf.description ||
-      acf.excerpt ||
+      decodeHtmlEntities(acf.description) ||
+      decodeHtmlEntities(acf.excerpt) ||
       stripHtml(renderedExcerpt) ||
       '',
 
     content:
       renderedContent ||
-      acf.content ||
-      acf.description ||
-      acf.excerpt ||
+      decodeHtmlEntities(acf.content) ||
+      decodeHtmlEntities(acf.description) ||
+      decodeHtmlEntities(acf.excerpt) ||
       '',
 
-    category:
+    category: decodeHtmlEntities(
       acf.newsCategory ||
-      acf.guideType ||
-      acf.category ||
-      item.category ||
-      'News',
+        acf.guideType ||
+        acf.category ||
+        item.category ||
+        'News'
+    ),
 
     categoryColor: acf.categoryColor || 'teal',
 
     date: acf.displayDate || item.displayDate || item.date || '',
     displayDate: acf.displayDate || item.displayDate || item.date || '',
 
-    readTime: acf.readTime || item.readTime || '',
+    readTime: decodeHtmlEntities(acf.readTime || item.readTime || ''),
 
-    /*
-      source bhi real author se sync kar diya,
-      taa ke list cards me bhi old source na aaye.
-    */
     source: authorName,
 
     authorName,
@@ -220,22 +346,27 @@ export function normalizePost(item) {
     authorImage: authorAvatar,
     authorBio,
     authorDescription: authorBio,
-    authorId: item.authorId || item.author || wpAuthor?.id || '',
+    authorId: rpAuthor?.id || item.authorId || item.author || wpAuthor?.id || '',
     authorSlug,
 
-    type: acf.guideType || acf.type || item.type || 'buyers',
+    featuredImage,
+    image: featuredImage,
+    thumbnail: featuredImage,
+    featuredMediaId: item.featured_media || '',
+
+    type: decodeHtmlEntities(acf.guideType || acf.type || item.type || 'buyers'),
 
     tags: Array.isArray(acf.tags)
-      ? acf.tags
+      ? acf.tags.map(decodeHtmlEntities)
       : Array.isArray(item.tags)
-        ? item.tags
+        ? item.tags.map(decodeHtmlEntities)
         : typeof acf.tags === 'string'
-          ? acf.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
+          ? acf.tags.split(',').map((tag) => decodeHtmlEntities(tag.trim())).filter(Boolean)
           : [],
 
-    robotName: acf.robotName || acf.name || item.robotName || renderedTitle,
+    robotName: decodeHtmlEntities(acf.robotName || acf.name || item.robotName || renderedTitle),
     score: Number(acf.score || item.score || 0),
-    verdict: acf.verdict || item.verdict || '',
+    verdict: decodeHtmlEntities(acf.verdict || item.verdict || ''),
 
     featured:
       acf.featured === true ||
@@ -245,18 +376,18 @@ export function normalizePost(item) {
       item.featured === true,
 
     pros: Array.isArray(acf.pros)
-      ? acf.pros
+      ? acf.pros.map(decodeHtmlEntities)
       : Array.isArray(item.pros)
-        ? item.pros
+        ? item.pros.map(decodeHtmlEntities)
         : [],
 
     cons: Array.isArray(acf.cons)
-      ? acf.cons
+      ? acf.cons.map(decodeHtmlEntities)
       : Array.isArray(item.cons)
-        ? item.cons
+        ? item.cons.map(decodeHtmlEntities)
         : [],
 
-    authorTitle: acf.authorTitle || item.authorTitle || '',
+    authorTitle: decodeHtmlEntities(acf.authorTitle || item.authorTitle || ''),
 
     postType: item.postType || '',
     urlBase: item.urlBase || '',
