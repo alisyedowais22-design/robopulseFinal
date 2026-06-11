@@ -6,7 +6,6 @@ import { useInView } from 'react-intersection-observer'
 import PageTransition from '../components/common/PageTransition'
 import SEO from '../components/common/SEO'
 import { CategoryBadge } from '../components/common/Badge'
-import { GUIDES } from '../utils/mockData'
 import { guidesApi } from '../api/endpoints'
 
 function getGuideSlug(guide) {
@@ -75,6 +74,27 @@ function getGuideTags(guide) {
 
 function getGuideDescription(guide) {
   return guide.description || guide.excerpt || 'Read the latest guide from RoboPulse.'
+}
+
+function matchesSearch(guide, query) {
+  const q = String(query || '').toLowerCase().trim()
+
+  if (!q) return true
+
+  const searchableText = [
+    guide.title,
+    guide.description,
+    guide.excerpt,
+    guide.type,
+    guide.guideType,
+    guide.readTime,
+    guide.slug,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return searchableText.includes(q)
 }
 
 function GuideCard({ guide, index, color = 'gold' }) {
@@ -201,8 +221,9 @@ function ExplainerRow({ guide, index }) {
 }
 
 export default function Guides() {
-  const [guides, setGuides] = useState(GUIDES)
+  const [guides, setGuides] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     let active = true
@@ -214,13 +235,13 @@ export default function Guides() {
         const data = await guidesApi.getAll()
 
         if (active) {
-          setGuides(Array.isArray(data) && data.length ? data : GUIDES)
+          setGuides(Array.isArray(data) ? data : [])
         }
       } catch (error) {
         console.error('Guides loading error:', error)
 
         if (active) {
-          setGuides(GUIDES)
+          setGuides([])
         }
       } finally {
         if (active) {
@@ -236,8 +257,13 @@ export default function Guides() {
     }
   }, [])
 
-  const groupedGuides = useMemo(() => {
+  const filteredGuides = useMemo(() => {
     const all = Array.isArray(guides) ? guides : []
+    return all.filter((guide) => matchesSearch(guide, searchQuery))
+  }, [guides, searchQuery])
+
+  const groupedGuides = useMemo(() => {
+    const all = Array.isArray(filteredGuides) ? filteredGuides : []
 
     return {
       all,
@@ -254,12 +280,15 @@ export default function Guides() {
         (guide) => normalizeGuideType(guide.type || guide.guideType) === 'all'
       ),
     }
-  }, [guides])
+  }, [filteredGuides])
 
   const shouldShowStructuredSections =
     groupedGuides.buyers.length > 0 ||
     groupedGuides.explainers.length > 0 ||
     groupedGuides.deepDives.length > 0
+
+  const hasGuides = Array.isArray(guides) && guides.length > 0
+  const hasSearch = searchQuery.trim().length > 0
 
   return (
     <PageTransition>
@@ -270,7 +299,6 @@ export default function Guides() {
           canonical="/guides"
         />
 
-        {/* Hero */}
         <section className="relative py-20 overflow-hidden">
           <div
             className="glow-orb w-96 h-96 opacity-10"
@@ -301,196 +329,260 @@ export default function Guides() {
           </div>
         </section>
 
-        <div className="container-wide pb-20 space-y-16">
-          {loading && (
-            <div
-              className="rounded-xl p-5"
-              style={{
-                background: '#0D1020',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <p className="text-text-secondary font-mono text-sm">
-                Loading guides...
-              </p>
-            </div>
-          )}
+        <div className="container-wide pb-20 space-y-10">
+          <div
+            className="rounded-xl p-5"
+            style={{
+              background: '#0D1020',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-xs font-mono text-accent-gold uppercase tracking-widest mb-2">
+                  Search Guides
+                </label>
 
-          {!loading && groupedGuides.all.length === 0 && (
-            <div
-              className="rounded-xl p-5"
-              style={{
-                background: '#0D1020',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <p className="text-text-secondary">
-                No guides found.
-              </p>
-            </div>
-          )}
-
-          {!loading && groupedGuides.all.length > 0 && !shouldShowStructuredSections && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-2xl">📘</span>
-
-                <div>
-                  <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                    ALL GUIDES
-                  </h2>
-
-                  <p className="text-sm text-text-muted">
-                    Latest guides from RoboPulse
-                  </p>
-                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by title, topic, type, or keyword..."
+                  className="w-full text-sm outline-none"
+                  style={{
+                    background: '#161923',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#F0F2F8',
+                    borderRadius: '10px',
+                    padding: '13px 16px',
+                  }}
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {groupedGuides.all.map((guide, index) => (
-                  <GuideCard
-                    key={guide.wpId || guide.id || guide.slug}
-                    guide={guide}
-                    index={index}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono text-text-muted whitespace-nowrap">
+                  {groupedGuides.all.length} result{groupedGuides.all.length === 1 ? '' : 's'}
+                </span>
 
-          {!loading && shouldShowStructuredSections && (
-            <>
-              {/* Buyer Guides */}
-              {groupedGuides.buyers.length > 0 && (
-                <section>
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="text-2xl">📘</span>
-
-                    <div>
-                      <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                        BUYER&apos;S GUIDES
-                      </h2>
-
-                      <p className="text-sm text-text-muted">
-                        Essential reading before you spend five figures on a robot
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {groupedGuides.buyers.map((guide, index) => (
-                      <GuideCard
-                        key={guide.wpId || guide.id || guide.slug}
-                        guide={guide}
-                        index={index}
-                        color="gold"
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Explainers */}
-              {groupedGuides.explainers.length > 0 && (
-                <section>
-                  <div
-                    className="rounded-xl overflow-hidden"
+                {hasSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="px-4 py-3 rounded-lg text-xs font-mono uppercase transition-colors"
                     style={{
-                      background: '#0D1020',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'rgba(245,200,66,0.08)',
+                      border: '1px solid rgba(245,200,66,0.22)',
+                      color: '#F5C842',
                     }}
                   >
-                    <div
-                      className="px-6 py-5 flex items-center gap-3"
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-                    >
-                      <span className="text-2xl">🔬</span>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-16">
+            {loading && (
+              <div
+                className="rounded-xl p-5"
+                style={{
+                  background: '#0D1020',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <p className="text-text-secondary font-mono text-sm">
+                  Loading guides...
+                </p>
+              </div>
+            )}
+
+            {!loading && !hasGuides && (
+              <div
+                className="rounded-xl p-5"
+                style={{
+                  background: '#0D1020',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <p className="text-text-secondary">
+                  No guides found.
+                </p>
+              </div>
+            )}
+
+            {!loading && hasGuides && groupedGuides.all.length === 0 && (
+              <div
+                className="rounded-xl p-5"
+                style={{
+                  background: '#0D1020',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <p className="text-text-secondary">
+                  No guides matched your search.
+                </p>
+              </div>
+            )}
+
+            {!loading && groupedGuides.all.length > 0 && !shouldShowStructuredSections && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-2xl">📘</span>
+
+                  <div>
+                    <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                      ALL GUIDES
+                    </h2>
+
+                    <p className="text-sm text-text-muted">
+                      Latest guides from RoboPulse
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedGuides.all.map((guide, index) => (
+                    <GuideCard
+                      key={guide.wpId || guide.id || guide.slug}
+                      guide={guide}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {!loading && shouldShowStructuredSections && (
+              <>
+                {groupedGuides.buyers.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="text-2xl">📘</span>
 
                       <div>
                         <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                          EXPLAINERS
+                          BUYER&apos;S GUIDES
                         </h2>
 
                         <p className="text-sm text-text-muted">
-                          Technical concepts explained clearly for non-engineers
+                          Essential reading before you spend five figures on a robot
                         </p>
                       </div>
                     </div>
 
-                    <div className="px-6">
-                      {groupedGuides.explainers.map((guide, index) => (
-                        <ExplainerRow
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {groupedGuides.buyers.map((guide, index) => (
+                        <GuideCard
                           key={guide.wpId || guide.id || guide.slug}
                           guide={guide}
                           index={index}
+                          color="gold"
                         />
                       ))}
                     </div>
-                  </div>
-                </section>
-              )}
+                  </section>
+                )}
 
-              {/* Deep Dives */}
-              {groupedGuides.deepDives.length > 0 && (
-                <section>
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="text-2xl">🌐</span>
+                {groupedGuides.explainers.length > 0 && (
+                  <section>
+                    <div
+                      className="rounded-xl overflow-hidden"
+                      style={{
+                        background: '#0D1020',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <div
+                        className="px-6 py-5 flex items-center gap-3"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                      >
+                        <span className="text-2xl">🔬</span>
 
-                    <div>
-                      <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                        INDUSTRY DEEP DIVES
-                      </h2>
+                        <div>
+                          <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                            EXPLAINERS
+                          </h2>
 
-                      <p className="text-sm text-text-muted">
-                        Longform analysis of the forces shaping robotics
-                      </p>
+                          <p className="text-sm text-text-muted">
+                            Technical concepts explained clearly for non-engineers
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="px-6">
+                        {groupedGuides.explainers.map((guide, index) => (
+                          <ExplainerRow
+                            key={guide.wpId || guide.id || guide.slug}
+                            guide={guide}
+                            index={index}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </section>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {groupedGuides.deepDives.map((guide, index) => (
-                      <GuideCard
-                        key={guide.wpId || guide.id || guide.slug}
-                        guide={guide}
-                        index={index}
-                        color="purple"
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
+                {groupedGuides.deepDives.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="text-2xl">🌐</span>
 
-              {/* Other / uncategorized guides */}
-              {groupedGuides.uncategorized.length > 0 && (
-                <section>
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="text-2xl">📄</span>
+                      <div>
+                        <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                          INDUSTRY DEEP DIVES
+                        </h2>
 
-                    <div>
-                      <h2 className="font-heading text-3xl tracking-heading text-text-primary">
-                        MORE GUIDES
-                      </h2>
-
-                      <p className="text-sm text-text-muted">
-                        Additional guides and resources
-                      </p>
+                        <p className="text-sm text-text-muted">
+                          Longform analysis of the forces shaping robotics
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {groupedGuides.uncategorized.map((guide, index) => (
-                      <GuideCard
-                        key={guide.wpId || guide.id || guide.slug}
-                        guide={guide}
-                        index={index}
-                        color="gold"
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {groupedGuides.deepDives.map((guide, index) => (
+                        <GuideCard
+                          key={guide.wpId || guide.id || guide.slug}
+                          guide={guide}
+                          index={index}
+                          color="purple"
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {groupedGuides.uncategorized.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="text-2xl">📄</span>
+
+                      <div>
+                        <h2 className="font-heading text-3xl tracking-heading text-text-primary">
+                          MORE GUIDES
+                        </h2>
+
+                        <p className="text-sm text-text-muted">
+                          Additional guides and resources
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {groupedGuides.uncategorized.map((guide, index) => (
+                        <GuideCard
+                          key={guide.wpId || guide.id || guide.slug}
+                          guide={guide}
+                          index={index}
+                          color="gold"
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </PageTransition>
