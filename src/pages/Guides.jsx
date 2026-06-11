@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import PageTransition from '../components/common/PageTransition'
+import SEO from '../components/common/SEO'
 import { CategoryBadge } from '../components/common/Badge'
 import { GUIDES } from '../utils/mockData'
 import { guidesApi } from '../api/endpoints'
@@ -263,6 +264,12 @@ export default function Guides() {
   return (
     <PageTransition>
       <div className="pt-16">
+        <SEO
+          title="Humanoid Robot Guides & Explainers — RoboPulse"
+          description="Learn about humanoid robots through buyer's guides, explainers, industry deep dives, technical breakdowns, practical resources, and robotics insights."
+          canonical="/guides"
+        />
+
         {/* Hero */}
         <section className="relative py-20 overflow-hidden">
           <div

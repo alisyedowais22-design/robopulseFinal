@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageTransition from '../components/common/PageTransition'
+import SEO from '../components/common/SEO'
 import { CategoryBadge } from '../components/common/Badge'
 import LiveDot from '../components/common/LiveDot'
 import { NEWS } from '../utils/mockData'
@@ -70,6 +71,12 @@ export default function News() {
   return (
     <PageTransition>
       <div className="pt-16">
+        <SEO
+          title="Humanoid Robot News — RoboPulse"
+          description="Follow the latest humanoid robot news, robotics company updates, AI breakthroughs, product launches, funding rounds, deployments, and industry developments."
+          canonical="/news"
+        />
+
         {/* Hero */}
         <section className="relative py-20 overflow-hidden">
           <div

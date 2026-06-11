@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageTransition from '../components/common/PageTransition'
+import SEO from '../components/common/SEO'
 import { authorsApi } from '../api/endpoints'
 import { formatDate } from '../utils/helpers'
 
@@ -60,9 +61,25 @@ export default function AuthorPage() {
     }
   }, [authorSlug])
 
+  const seoTitle = author?.name
+    ? `${author.name} — RoboPulse Author Profile`
+    : 'Author Profile — RoboPulse'
+
+  const seoDescription = author?.bio
+    ? author.bio
+    : 'Read the latest articles, guides, reviews, and robotics industry coverage from RoboPulse authors.'
+
   return (
     <PageTransition>
       <div className="min-h-[75vh] pt-28 pb-24 overflow-hidden">
+        <SEO
+          title={seoTitle}
+          description={seoDescription}
+          canonical={`/author/${authorSlug}`}
+          image={author?.avatar || undefined}
+          type="profile"
+        />
+
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div
             className="absolute w-[520px] h-[520px] rounded-full opacity-10 blur-3xl"
@@ -140,7 +157,7 @@ export default function AuthorPage() {
           )}
 
           {!loading && !error && author && (
-            <>
+            <div>
               <motion.section
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -282,7 +299,7 @@ export default function AuthorPage() {
                   </div>
                 )}
               </section>
-            </>
+            </div>
           )}
         </div>
       </div>

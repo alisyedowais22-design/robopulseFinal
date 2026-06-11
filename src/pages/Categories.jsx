@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import PageTransition from '../components/common/PageTransition'
+import SEO from '../components/common/SEO'
 import { CategoryBadge } from '../components/common/Badge'
 
 const COLOR_MAP = {
@@ -57,12 +58,12 @@ const ALL_CATEGORIES = [
   {
     id: 'guides',
     icon: '📘',
-    name: 'Buyer\'s Guides',
+    name: "Buyer's Guides",
     description: 'Everything you need to make the right robot purchase.',
     count: 12,
     color: 'gold',
     articles: [
-      { title: 'Complete 2025 Robot Buyer\'s Guide', meta: '25 min' },
+      { title: "Complete 2025 Robot Buyer's Guide", meta: '25 min' },
       { title: 'Industrial Robot Procurement Guide', meta: '30 min' },
       { title: 'Are Home Robots Ready in 2025?', meta: '15 min' },
       { title: 'Chinese vs American Robots', meta: '18 min' },
@@ -91,7 +92,7 @@ const ALL_CATEGORIES = [
     color: 'teal',
     articles: [
       { title: 'Manufacturing Robots: The $50B Opportunity', meta: '35 min' },
-      { title: 'China\'s Robotics Strategy: The Full Picture', meta: '40 min' },
+      { title: "China's Robotics Strategy: The Full Picture", meta: '40 min' },
       { title: 'Humanoids in Healthcare: Promise vs Reality', meta: '28 min' },
       { title: 'The $165B Investment Landscape', meta: '32 min' },
     ],
@@ -117,7 +118,7 @@ const ALL_CATEGORIES = [
     count: 14,
     color: 'pink',
     articles: [
-      { title: 'China\'s Humanoid Robots: Full Breakdown', meta: '22 min' },
+      { title: "China's Humanoid Robots: Full Breakdown", meta: '22 min' },
       { title: 'Unitree: How a Startup Beat the Giants', meta: '12 min' },
       { title: 'AgiBot A2: The Dark Horse', meta: '10 min' },
     ],
@@ -253,6 +254,12 @@ export default function Categories() {
   return (
     <PageTransition>
       <div className="pt-16">
+        <SEO
+          title="RoboPulse Categories — Reviews, News, Guides & Robot Analysis"
+          description="Browse all RoboPulse categories including humanoid robot reviews, comparisons, news, buyer's guides, explainers, deep dives, market analysis, and robotics trends."
+          canonical="/categories"
+        />
+
         {/* Hero */}
         <section className="relative py-20 overflow-hidden">
           <div

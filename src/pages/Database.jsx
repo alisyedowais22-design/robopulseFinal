@@ -1,6 +1,7 @@
 // pages/Database.jsx
 import { motion } from 'framer-motion'
 import PageTransition from '../components/common/PageTransition'
+import SEO from '../components/common/SEO'
 import RobotFilters from '../components/robots/RobotFilters'
 import RobotSort from '../components/robots/RobotSort'
 import RobotGrid from '../components/robots/RobotGrid'
@@ -15,6 +16,12 @@ export default function Database() {
   return (
     <PageTransition>
       <div className="pt-16">
+        <SEO
+          title="Humanoid Robot Database — RoboPulse"
+          description="Browse the RoboPulse humanoid robot database with robot models, makers, specifications, pricing, availability, scores, country filters, and real-time price tracking."
+          canonical="/database"
+        />
+
         {/* Hero */}
         <section className="relative py-20 overflow-hidden">
           <div

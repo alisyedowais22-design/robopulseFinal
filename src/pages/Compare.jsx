@@ -1,6 +1,7 @@
 // pages/Compare.jsx
 import { motion } from 'framer-motion'
 import PageTransition from '../components/common/PageTransition'
+import SEO from '../components/common/SEO'
 import ComparePicker from '../components/compare/ComparePicker'
 import CompareScore from '../components/compare/CompareScore'
 import CompareTable from '../components/compare/CompareTable'
@@ -15,6 +16,12 @@ export default function Compare() {
   return (
     <PageTransition>
       <div className="pt-16">
+        <SEO
+          title="Compare Humanoid Robots — RoboPulse"
+          description="Compare humanoid robots side by side by price, features, specifications, use cases, mobility, AI capability, RoboPulse scores, and overall value."
+          canonical="/compare"
+        />
+
         {/* Hero */}
         <section className="relative py-20 overflow-hidden">
           <div
@@ -75,10 +82,10 @@ export default function Compare() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Modal */}
-      <RobotSelectorModal />
+        {/* Modal */}
+        <RobotSelectorModal />
+      </div>
     </PageTransition>
   )
 }
